@@ -1,1 +1,1 @@
-North2 - Boilerplate zadatka
+## Web development starting project

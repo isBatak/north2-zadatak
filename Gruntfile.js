@@ -5,17 +5,23 @@ module.exports = function (grunt) {
     var hasSass = npmDependencies['grunt-contrib-sass'] !== undefined;
 
     grunt.initConfig({
+		// Dirs
+        dirs: {
+            bower: 'bower_components',
+            js: 'js',
+            css: 'css',
+            images: 'images',
+			app: 'app',
+			html: 'html_template'
+        },
         // Watches for changes and runs tasks
         watch: {
             sass: {
                 files: ['scss/**/*.scss'],
-                tasks: (hasSass) ? ['sass:dev', 'autoprefixer'] : null,
-                options: {
-                    livereload: true
-                }
+                tasks: (hasSass) ? ['sass:dev', 'autoprefixer'] : null
             },
             js: {
-                files: ['js/**/*.js'],
+                files: ['<%= dirs.app %>/**/*.js', '<%= dirs.js %>/**/*.js'],
                 tasks: ['jshint'],
                 options: {
                     livereload: true
@@ -28,7 +34,20 @@ module.exports = function (grunt) {
                 }
             },
             html: {
-                files: ['**/*.html'],
+                files: ['**/*.html', '!<%= dirs.html %>/*.html'],
+                options: {
+                    livereload: true
+                }
+            },
+            css : {
+				files : ['<%= dirs.css %>/**/*.css'],
+				options : {
+					livereload : true
+				}
+			},
+            dot: {
+                files: ['<%= dirs.html %>/**/*.dot.html', '<%= dirs.html %>/**/*.md'],
+                tasks: ['stencil:main'],
                 options: {
                     livereload: true
                 }
@@ -36,7 +55,7 @@ module.exports = function (grunt) {
         },
         // JsHint your javascript
         jshint: {
-            all: ['js/*.js', 'js/plugins/*.js', '!js/modernizr.js', '!js/*.min.js', '!lib/**/*.js'],
+            all: ['<%= dirs.app %>/**/*.js', '<%= dirs.js %>/**/*.js', '!<%= dirs.js %>/modernizr.js', '!<%= dirs.js %>/*.min.js', '!<%= dirs.bower %>/**/*.js'],
             options: {
                 browser: true,
                 curly: false,
@@ -58,7 +77,7 @@ module.exports = function (grunt) {
                     {
                         src: ['**/*.scss', '!**/_*.scss'],
                         cwd: 'scss',
-                        dest: 'css',
+                        dest: '<%= dirs.css %>',
                         ext: '.css',
                         expand: true
                     }
@@ -72,7 +91,7 @@ module.exports = function (grunt) {
                     {
                         src: ['**/*.scss', '!**/_*.scss'],
                         cwd: 'scss',
-                        dest: 'css',
+                        dest: '<%= dirs.css %>',
                         ext: '.css',
                         expand: true
                     }
@@ -85,10 +104,13 @@ module.exports = function (grunt) {
         // Autoprefixer setup
         autoprefixer: {
             options: {
-                browsers: ['last 2 versions', 'ie 8', 'ie 9']
+                browsers: ['> 5%','last 2 versions', 'ie 8', 'ie 9'],
+                map: {
+                    inline: false
+                }
             },
             files: {
-                src: 'css/style.css'
+                src: '<%= dirs.css %>/*.css'
             }
         },
         concat: {
@@ -96,14 +118,14 @@ module.exports = function (grunt) {
                 //separator: ';',
             },
             dist: {
-                src: ['js/plugins/*.js'],
-                dest: 'js/bundle.js',
+                src: ['<%= dirs.js %>/plugins/*.js'],
+                dest: '<%= dirs.js %>/bundle.js',
             },
         },
         uglify: {
             production: {
               files: {
-                'js/bundle.min.js': ['js/bundle.js']
+                '<%= dirs.js %>/bundle.min.js': ['<%= dirs.js %>/bundle.js']
               }
             }
         },
@@ -113,9 +135,9 @@ module.exports = function (grunt) {
                 files: [
                     {
                         expand: true,
-                        cwd: 'images',
+                        cwd: '<%= dirs.images %>',
                         src: '**/*.{png,jpg,jpeg}',
-                        dest: 'images'
+                        dest: '<%= dirs.images %>'
                     }
                 ]
             }
@@ -126,14 +148,33 @@ module.exports = function (grunt) {
                 files: [
                     {
                         expand: true,
-                        cwd: 'images',
+                        cwd: '<%= dirs.images %>',
                         src: '**/*.svg',
-                        dest: 'images'
+                        dest: '<%= dirs.images %>'
+                    }
+                ]
+            }
+        },
+		// Stencil HTML assembler
+        stencil: {
+            main: {
+                options: {
+                    partials: '<%= dirs.html %>/partials',
+                    templates: '<%= dirs.html %>/templates',
+                    dot_template_settings: { strip: false }
+                },
+                files: [
+                    {
+                        expand: true,
+                        cwd: '<%= dirs.html %>/pages/',
+                        src: '**/*.dot.html',
+                        dest: '<%= dirs.html %>',
+                        ext: '.html',
+                        flatten: false
                     }
                 ]
             }
         }
-
     });
 
     // Default task
@@ -161,8 +202,6 @@ module.exports = function (grunt) {
             arr.push['sass:dev'];
         }
 
-        arr.push('bower-install');
-
         grunt.task.run(arr);
     });
 
@@ -171,6 +210,7 @@ module.exports = function (grunt) {
         grunt.loadNpmTasks('grunt-contrib-sass');
     }
 
+	grunt.loadNpmTasks('grunt-debug-task');
     grunt.loadNpmTasks('grunt-autoprefixer');
     grunt.loadNpmTasks('grunt-contrib-jshint');
     grunt.loadNpmTasks('grunt-contrib-concat');
@@ -178,18 +218,5 @@ module.exports = function (grunt) {
     grunt.loadNpmTasks('grunt-contrib-watch');
     grunt.loadNpmTasks('grunt-contrib-imagemin');
     grunt.loadNpmTasks('grunt-svgmin');
-
-    // Run bower install
-    grunt.registerTask('bower-install', function () {
-        var done = this.async();
-        var bower = require('bower').commands;
-        bower.install().on('end', function (data) {
-            done();
-        }).on('data', function (data) {
-            console.log(data);
-        }).on('error', function (err) {
-            console.error(err);
-            done();
-        });
-    });
+    grunt.loadNpmTasks('grunt-stencil');
 };
